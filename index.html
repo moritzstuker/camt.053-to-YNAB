@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAMT.053 to YNAB Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            margin: 0 0 8px 0;
+            padding: 0;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin: 0 0 24px 0;
+            padding: 0;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .privacy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0f9ff;
+            color: #0369a1;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0 0 24px 0;
+            border-radius: 6px;
+            border: 1px solid #bae6fd;
+        }
+
+        .privacy-badge-icon {
+            font-size: 16px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            background: #fafafa;
+            margin: 0 0 24px 0;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .drop-zone:hover {
+            background: #f5f5f5;
+            border-color: #9ca3af;
+        }
+
+        .drop-zone.dragover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            border-style: solid;
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.7;
+        }
+
+        .drop-zone-text {
+            color: #374151;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .drop-zone-subtext {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .file-list {
+            margin-top: 0;
+            display: none;
+        }
+
+        .file-list.visible {
+            display: block;
+        }
+
+        .file-item {
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-icon {
+            font-size: 24px;
+            margin-right: 12px;
+            opacity: 0.7;
+        }
+
+        .file-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-meta {
+            font-size: 13px;
+            color: #6b7280;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .file-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .file-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .file-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        .file-status.analyzing {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #bfdbfe;
+        }
+
+        .file-status.processing {
+            background: #e0e7ff;
+            color: #3730a3;
+            border-color: #c7d2fe;
+        }
+
+        .file-status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        .file-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .file-remove {
+            background: transparent;
+            border: 1px solid #d1d5db;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 6px 10px;
+            margin-left: 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+
+        .file-remove:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .file-download {
+            background: #3b82f6;
+            color: #ffffff;
+            border: 1px solid #2563eb;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 8px;
+            white-space: nowrap;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .file-download:hover {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+
+        .file-download:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: #ffffff;
+            border-color: #2563eb;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+            padding: 0;
+            display: none;
+        }
+
+        .stats.visible {
+            display: grid;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 20px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 8px 12px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            margin-bottom: 8px;
+            z-index: 1000;
+            line-height: 1.4;
+            border-radius: 4px;
+            transition: opacity 0.2s ease;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            border-top-color: #1a1a1a;
+        }
+
+        .stat-item:hover .tooltip {
+            opacity: 1;
+        }
+
+        .alert {
+            padding: 16px;
+            margin-top: 24px;
+            display: none;
+            border: 1px solid;
+            font-size: 14px;
+            line-height: 1.6;
+            border-radius: 6px;
+        }
+
+        .alert.visible {
+            display: block;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e3a8a;
+            border-color: #bfdbfe;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 24px;
+            display: none;
+        }
+
+        .progress-bar.visible {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+            width: 0%;
+            border-radius: 4px;
+        }
+
+        .logs-section {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .logs-section.visible {
+            display: block;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #fafafa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .logs-header:hover {
+            background: #f5f5f5;
+            border-color: #d1d5db;
+        }
+
+        .logs-title {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .logs-toggle {
+            color: #6b7280;
+            font-size: 18px;
+            transition: transform 0.2s ease;
+        }
+
+        .logs-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .logs-content {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            background: #ffffff;
+            display: none;
+        }
+
+        .logs-content.visible {
+            display: block;
+        }
+
+        .log-entry {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.info {
+            color: #1e40af;
+        }
+
+        .log-entry.success {
+            color: #065f46;
+        }
+
+        .log-entry.warning {
+            color: #92400e;
+        }
+
+        .log-entry.error {
+            color: #991b1b;
+        }
+
+        .log-file-header {
+            background: #f9fafb;
+            padding: 10px 16px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-item {
+                padding: 16px;
+            }
+
+            .stat-value {
+                font-size: 28px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .file-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .file-item {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .file-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .file-download {
+                flex: 1;
+            }
+
+            .drop-zone {
+                padding: 40px 20px;
+            }
+
+            .drop-zone-icon {
+                font-size: 40px;
+            }
+
+            .tooltip {
+                font-size: 11px;
+                padding: 6px 10px;
+                white-space: normal;
+                max-width: 200px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .subtitle {
+                font-size: 13px;
+            }
+
+            .privacy-badge {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .btn {
+                font-size: 13px;
+                padding: 10px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CAMT.053 to YNAB Converter</h1>
+        <p class="subtitle">Your Swiss bank can't communicate directly with YNAB (yet). But it <em>does</em> offer you the option of exporting all your transactions in 'camt.053' files. You can use this tool to convert these files into a YNAB-friendly file format.</p>
+        
+        <div class="privacy-badge">
+            <span class="privacy-badge-icon">🔒</span>
+            <span>All processing happens locally in your browser</span>
+        </div>
+
+        <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Upload CAMT.053 XML files. Click to browse or drag and drop files here.">
+            <div class="drop-zone-icon" aria-hidden="true">📄</div>
+            <div class="drop-zone-text">Drop your CAMT.053 files here</div>
+            <div class="drop-zone-subtext">or click to browse</div>
+            <input type="file" id="fileInput" accept=".xml" multiple style="display: none;" aria-label="Select CAMT.053 XML files">
+        </div>
+
+        <div id="fileList" class="file-list"></div>
+
+        <div class="progress-bar" id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="File conversion progress">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="button-group" id="buttonGroup" style="display: none;">
+            <button id="convertBtn" class="btn btn-primary">Convert to YNAB CSV</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear All</button>
+        </div>
+
+        <div id="stats" class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="statFiles">0</div>
+                <div class="stat-label">Files</div>
+                <div class="tooltip">Number of files processed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statTransactions">0</div>
+                <div class="stat-label">Transactions</div>
+                <div class="tooltip">Total transactions exported</div>
+            </div>
+        </div>
+
+        <div id="logsSection" class="logs-section">
+            <div class="logs-header" id="logsHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="logsContent" aria-label="Toggle processing logs">
+                <span class="logs-title"><span aria-hidden="true">📋</span> Processing Logs</span>
+                <span class="logs-toggle" id="logsToggle" aria-hidden="true">▼</span>
+            </div>
+            <div class="logs-content" id="logsContent" role="log" aria-live="polite"></div>
+        </div>
+
+        <div id="alert" class="alert" role="alert" aria-live="assertive"></div>
+    </div>
+
+    <script>
+        // State management
+        let uploadedFiles = [];
+        let processedData = [];
+        let processingLogs = [];
+        let usedFilenames = new Set();
+
+        // DOM elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const buttonGroup = document.getElementById('buttonGroup');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statsDiv = document.getElementById('stats');
+        const alert = document.getElementById('alert');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const logsSection = document.getElementById('logsSection');
+        const logsHeader = document.getElementById('logsHeader');
+        const logsToggle = document.getElementById('logsToggle');
+        const logsContent = document.getElementById('logsContent');
+
+        // Event listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+        convertBtn.addEventListener('click', convertFiles);
+        clearBtn.addEventListener('click', clearAll);
+        logsHeader.addEventListener('click', toggleLogs);
+        logsHeader.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleLogs();
+            }
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.xml'));
+            addFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            addFiles(files);
+            fileInput.value = '';
+        }
+
+        async function addFiles(files) {
+            if (files.length === 0) {
+                showAlert('Please select XML files only', 'error');
+                return;
+            }
+
+            for (const file of files) {
+                // Check if file already added
+                if (uploadedFiles.find(f => f.name === file.name && f.size === file.size)) {
+                    continue;
+                }
+
+                const fileData = {
+                    file: file,
+                    name: file.name,
+                    size: formatFileSize(file.size),
+                    status: 'analyzing',
+                    transactionCount: 0,
+                    account: ''
+                };
+
+                uploadedFiles.push(fileData);
+                renderFileList();
+
+                // Pre-analyze the file
+                try {
+                    const xmlText = await file.text();
+                    const analysis = analyzeFile(xmlText);
+                    fileData.transactionCount = analysis.transactionCount;
+                    fileData.account = analysis.account;
+                    fileData.status = 'pending';
+                } catch (error) {
+                    fileData.status = 'error';
+                    fileData.errorMessage = 'Failed to read file';
+                }
+
+                renderFileList();
+            }
+
+            buttonGroup.style.display = 'flex';
+            hideAlert();
+        }
+
+        function analyzeFile(xmlText) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                const parserError = xmlDoc.querySelector('parsererror');
+                if (parserError) {
+                    throw new Error('Invalid XML structure');
+                }
+
+                const entries = xmlDoc.querySelectorAll('Ntry');
+                let transactionCount = 0;
+
+                entries.forEach(entry => {
+                    const txDetails = entry.querySelectorAll('TxDtls');
+                    if (txDetails.length > 0) {
+                        transactionCount += txDetails.length;
+                    } else {
+                        transactionCount += 1;
+                    }
+                });
+
+                // Get account IBAN (namespace-aware)
+                const ibanElement = xmlDoc.querySelector('IBAN') ||
+                                   Array.from(xmlDoc.querySelectorAll('*')).find(el => el.localName === 'IBAN');
+                const account = ibanElement ? ibanElement.textContent.trim() : 'Unknown';
+
+                return { transactionCount, account };
+            } catch (error) {
+                return { transactionCount: 0, account: 'Error' };
+            }
+        }
+
+        function renderFileList() {
+            if (uploadedFiles.length === 0) {
+                fileList.classList.remove('visible');
+                buttonGroup.style.display = 'none';
+                return;
+            }
+
+            fileList.classList.add('visible');
+            fileList.innerHTML = uploadedFiles.map((fileData, index) => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div class="file-details">
+                            <div class="file-name">${escapeHtml(fileData.name)}</div>
+                            <div class="file-meta">
+                                <span class="file-meta-item">📦 ${fileData.size}</span>
+                                ${fileData.transactionCount > 0 ? `<span class="file-meta-item">💳 ${fileData.transactionCount} transactions</span>` : ''}
+                                ${fileData.account && fileData.account !== 'Unknown' ? `<span class="file-meta-item">🏦 ${fileData.account}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <span class="file-status ${fileData.status}">${formatStatus(fileData.status)}</span>
+                        ${fileData.status === 'success' ? `<button class="file-download" onclick="downloadFile(${index})" title="Download CSV">Download CSV</button>` : ''}
+                        <button class="file-remove" onclick="removeFile(${index})" title="Remove file">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderFileList();
+            hideAlert();
+            
+            if (uploadedFiles.length === 0) {
+                statsDiv.classList.remove('visible');
+                logsSection.classList.remove('visible');
+            }
+        }
+
+        function clearAll() {
+            uploadedFiles = [];
+            processedData = [];
+            processingLogs = [];
+            usedFilenames.clear();
+            renderFileList();
+            statsDiv.classList.remove('visible');
+            logsSection.classList.remove('visible');
+            hideAlert();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function formatStatus(status) {
+            const statusMap = {
+                pending: 'Ready',
+                analyzing: 'Analyzing...',
+                processing: 'Processing...',
+                success: 'Converted ✓',
+                error: 'Error'
+            };
+            return statusMap[status] || status;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function parseDate(dateString) {
+            if (!dateString) return null;
+
+            // Try ISO format first (YYYY-MM-DD)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                return dateString;
+            }
+
+            // Try European format (DD.MM.YYYY or DD/MM/YYYY)
+            const europeanMatch = dateString.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+            if (europeanMatch) {
+                const [, day, month, year] = europeanMatch;
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            // Try US format (MM/DD/YYYY)
+            const usMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (usMatch) {
+                const [, month, day, year] = usMatch;
+                return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+
+            // Try parsing as generic date and format to ISO
+            const parsedDate = new Date(dateString);
+            if (!isNaN(parsedDate.getTime())) {
+                return parsedDate.toISOString().split('T')[0];
+            }
+
+            return null;
+        }
+
+        function showAlert(message, type = 'info') {
+            alert.textContent = message;
+            alert.className = `alert alert-${type} visible`;
+        }
+
+        function hideAlert() {
+            alert.classList.remove('visible');
+        }
+
+        function updateProgress(percent) {
+            progressBar.classList.add('visible');
+            progressFill.style.width = percent + '%';
+            progressBar.setAttribute('aria-valuenow', Math.round(percent));
+        }
+
+        function hideProgress() {
+            progressBar.classList.remove('visible');
+            progressFill.style.width = '0%';
+        }
+
+        function addLog(fileName, message, type = 'info') {
+            processingLogs.push({ fileName, message, type, timestamp: new Date() });
+            updateLogsDisplay();
+        }
+
+        function updateLogsDisplay() {
+            const logsByFile = {};
+            processingLogs.forEach(log => {
+                if (!logsByFile[log.fileName]) {
+                    logsByFile[log.fileName] = [];
+                }
+                logsByFile[log.fileName].push(log);
+            });
+
+            let html = '';
+            for (const [fileName, logs] of Object.entries(logsByFile)) {
+                html += `<div class="log-file-header">${escapeHtml(fileName)}</div>`;
+                logs.forEach(log => {
+                    const time = log.timestamp.toLocaleTimeString();
+                    html += `<div class="log-entry ${log.type}">[${time}] ${escapeHtml(log.message)}</div>`;
+                });
+            }
+
+            logsContent.innerHTML = html || '<div class="log-entry info">No logs yet</div>';
+            
+            if (processingLogs.length > 0) {
+                logsSection.classList.add('visible');
+            }
+        }
+
+        function toggleLogs() {
+            const isExpanded = logsContent.classList.toggle('visible');
+            logsToggle.classList.toggle('expanded');
+            logsHeader.setAttribute('aria-expanded', isExpanded);
+        }
+
+        async function convertFiles() {
+            convertBtn.disabled = true;
+            clearBtn.disabled = true;
+            processedData = [];
+            processingLogs = [];
+            usedFilenames.clear();
+
+            let totalFiles = uploadedFiles.length;
+            let processedFiles = 0;
+            let totalTransactions = 0;
+
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const fileData = uploadedFiles[i];
+                fileData.status = 'processing';
+                renderFileList();
+
+                addLog(fileData.name, 'Starting conversion...', 'info');
+
+                try {
+                    const xmlText = await fileData.file.text();
+                    const result = await processXMLFile(xmlText, fileData.name);
+
+                    processedData.push({
+                        fileName: fileData.name,
+                        transactions: result.transactions
+                    });
+
+                    totalTransactions += result.transactions.length;
+
+                    fileData.status = 'success';
+                    processedFiles++;
+                    updateProgress((processedFiles / totalFiles) * 100);
+
+                    addLog(fileData.name, `✓ Converted ${result.transactions.length} transactions`, 'success');
+
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    fileData.status = 'error';
+                    addLog(fileData.name, `✗ Error: ${error.message}`, 'error');
+                    showAlert(`Error processing ${fileData.name}: ${error.message}`, 'error');
+                }
+
+                renderFileList();
+            }
+
+            hideProgress();
+            convertBtn.disabled = false;
+            clearBtn.disabled = false;
+
+            if (processedFiles > 0) {
+                // Update stats
+                document.getElementById('statFiles').textContent = processedFiles;
+                document.getElementById('statTransactions').textContent = totalTransactions;
+                statsDiv.classList.add('visible');
+
+                showAlert(`Successfully converted ${processedFiles} file(s)! Click the "Download CSV" button for each file to download.`, 'success');
+            }
+        }
+
+        async function processXMLFile(xmlText, fileName) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+            // Check for parsing errors
+            const parserError = xmlDoc.querySelector('parsererror');
+            if (parserError) {
+                throw new Error('Invalid XML file - Could not parse the document. Please ensure this is a valid CAMT.053 XML file.');
+            }
+
+            // Check if it's actually a CAMT file
+            const rootElement = xmlDoc.documentElement;
+            if (!rootElement || rootElement.nodeName !== 'Document') {
+                throw new Error('Invalid CAMT.053 file - Missing Document root element. This may not be a bank statement file.');
+            }
+
+            const transactions = [];
+
+            // Get all Entry elements
+            const entries = xmlDoc.querySelectorAll('Ntry');
+
+            if (entries.length === 0) {
+                addLog(fileName, '⚠ No transactions found in file', 'warning');
+            }
+
+            entries.forEach((entry, entryIndex) => {
+                try {
+                    const amount = parseFloat(getTextContent(entry, 'Amt'));
+                    const direction = getTextContent(entry, 'CdtDbtInd');
+                    
+                    // Prefer BookgDt over ValDt
+                    let rawDate = getTextContent(entry, 'BookgDt Dt');
+                    if (!rawDate) {
+                        rawDate = getTextContent(entry, 'ValDt Dt');
+                    }
+
+                    let date = parseDate(rawDate);
+                    if (!date) {
+                        addLog(fileName, `⚠ Entry ${entryIndex + 1}: Invalid or missing date, using current date`, 'warning');
+                        date = new Date().toISOString().split('T')[0];
+                    }
+
+                    const acctSvcrRef = getTextContent(entry, 'AcctSvcrRef');
+
+                    // Check for sub-transactions
+                    const txDetails = entry.querySelectorAll('TxDtls');
+
+                    if (txDetails.length > 0) {
+                        txDetails.forEach((txDetail, subIndex) => {
+                            const subAmount = parseFloat(getTextContent(txDetail, 'Amt'));
+                            const subDirection = getTextContent(txDetail, 'CdtDbtInd');
+
+                            const payee = extractPayee(txDetail, subDirection, entry);
+                            const memo = extractMemo(txDetail);
+
+                            transactions.push({
+                                date: date,
+                                payee: payee,
+                                memo: memo,
+                                outflow: subDirection === 'DBIT' ? subAmount.toFixed(2) : '',
+                                inflow: subDirection === 'CRDT' ? subAmount.toFixed(2) : ''
+                            });
+                        });
+                    } else {
+                        // Simple entry without sub-transactions
+                        const payee = extractPayee(entry, direction, entry);
+                        const memo = extractMemo(entry);
+
+                        transactions.push({
+                            date: date,
+                            payee: payee,
+                            memo: memo,
+                            outflow: direction === 'DBIT' ? amount.toFixed(2) : '',
+                            inflow: direction === 'CRDT' ? amount.toFixed(2) : ''
+                        });
+                    }
+                } catch (error) {
+                    addLog(fileName, `⚠ Error processing entry ${entryIndex + 1}: ${error.message}`, 'error');
+                }
+            });
+
+            // Sort by date
+            transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            return { transactions };
+        }
+
+        function getTextContent(element, selector) {
+            const selectors = selector.split(' ');
+            let current = element;
+
+            for (const sel of selectors) {
+                // Try standard query first, then fallback to namespace-agnostic search
+                let found = current.querySelector(sel);
+                if (!found) {
+                    // Search by local name (ignoring namespaces)
+                    found = Array.from(current.querySelectorAll('*')).find(el => el.localName === sel);
+                }
+                if (!found) return null;
+                current = found;
+            }
+
+            return current.textContent.trim();
+        }
+
+        function extractPayee(element, direction, entryElement) {
+            // Try to get party information from RltdPties
+            const dbtrName = getTextContent(element, 'RltdPties Dbtr Nm');
+            const cdtrName = getTextContent(element, 'RltdPties Cdtr Nm');
+
+            // For credits (money coming in), the debtor is the payee
+            if (direction === 'CRDT' && dbtrName) {
+                return cleanPayeeName(dbtrName);
+            }
+
+            // For debits (money going out), the creditor is the payee
+            if (direction === 'DBIT' && cdtrName) {
+                return cleanPayeeName(cdtrName);
+            }
+
+            // Fallback to additional info
+            const addtlTxInfo = getTextContent(element, 'AddtlTxInf');
+            if (addtlTxInfo) {
+                return cleanPayeeName(addtlTxInfo);
+            }
+
+            const addtlNtryInfo = getTextContent(entryElement, 'AddtlNtryInf');
+            if (addtlNtryInfo) {
+                return cleanPayeeName(addtlNtryInfo);
+            }
+
+            return 'Unknown';
+        }
+
+        function cleanPayeeName(text) {
+            if (!text) return 'Unknown';
+
+            // Remove common prefixes
+            text = text.replace(/^(Bonification|Crédit|Débit e-banking|Paiement|Achat|Ordre permanent)\s+/i, '');
+            
+            // Remove SEPA artifacts
+            text = text.replace(/\/C\//g, '').replace(/\/D\//g, '');
+            
+            // Remove NOTPROVIDED
+            if (text.trim() === 'NOTPROVIDED') return 'Unknown';
+            
+            // Remove trailing country codes
+            text = text.replace(/\.(CH|LI|DE|FR|IT|AT)$/i, '');
+            
+            // Replace multiple spaces with single space
+            text = text.replace(/\s+/g, ' ');
+            
+            // Remove excess punctuation
+            text = text.replace(/[,;]+\s*$/g, '');
+            
+            // Take first line if multiline
+            const lines = text.split('\n');
+            text = lines[0];
+
+            // Limit length and trim
+            return text.substring(0, 100).trim();
+        }
+
+        function extractMemo(element) {
+            let memo = '';
+
+            // Try structured remittance info first (can have multiple lines)
+            const ustrdElements = element.querySelectorAll('RmtInf Ustrd');
+            if (ustrdElements.length > 0) {
+                const ustrdLines = [];
+                ustrdElements.forEach(el => {
+                    const content = el.textContent.trim();
+                    if (content && content !== 'NOTPROVIDED') {
+                        ustrdLines.push(content);
+                    }
+                });
+                if (ustrdLines.length > 0) {
+                    memo = ustrdLines.join('; ');
+                }
+            }
+
+            // If no structured info, try other remittance structures
+            if (!memo) {
+                const addtlRmtInf = getTextContent(element, 'RmtInf Strd AddtlRmtInf');
+                if (addtlRmtInf && addtlRmtInf !== 'NOTPROVIDED') {
+                    memo = addtlRmtInf;
+                }
+            }
+
+            // Try additional transaction info
+            if (!memo) {
+                const addtlTxInfo = getTextContent(element, 'AddtlTxInf');
+                if (addtlTxInfo) {
+                    memo = addtlTxInfo;
+                }
+            }
+
+            // Limit memo length
+            return memo.substring(0, 300);
+        }
+
+        function generateCSV(transactions) {
+            let csv = '"Date","Payee","Memo","Outflow","Inflow"\n';
+
+            transactions.forEach(tx => {
+                const escapedPayee = (tx.payee || '').replace(/"/g, '""');
+                const escapedMemo = (tx.memo || '').replace(/"/g, '""');
+                csv += `"${tx.date}","${escapedPayee}","${escapedMemo}","${tx.outflow}","${tx.inflow}"\n`;
+            });
+
+            return csv;
+        }
+
+        function getUniqueFilename(baseName) {
+            // Remove .xml extension
+            baseName = baseName.replace(/\.xml$/i, '');
+            
+            let fileName = `${baseName}.csv`;
+            let counter = 2;
+
+            while (usedFilenames.has(fileName)) {
+                fileName = `${baseName}_${counter}.csv`;
+                counter++;
+            }
+
+            usedFilenames.add(fileName);
+            return fileName;
+        }
+
+        function downloadFile(index) {
+            const fileData = uploadedFiles[index];
+
+            // Find the processed data for this file
+            const processedFile = processedData.find(data => data.fileName === fileData.name);
+
+            if (!processedFile) {
+                showAlert('Error: Processed data not found for this file', 'error');
+                return;
+            }
+
+            const csv = generateCSV(processedFile.transactions);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+
+            const fileName = getUniqueFilename(fileData.name);
+
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Clean up after a short delay
+            setTimeout(() => {
+                URL.revokeObjectURL(link.href);
+            }, 100);
+
+            addLog(fileData.name, `✓ Downloaded as: ${fileName}`, 'success');
+        }
+    </script>
+</body>
+</html>
